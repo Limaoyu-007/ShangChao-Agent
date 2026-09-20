@@ -6,6 +6,9 @@ import model.BailianModelClient;
 import model.ModelClient;
 import store.FileSessionStore;
 import store.SessionStore;
+import tool.CurrentTimeTool;
+import tool.Tool;
+import tool.ToolRegistry;
 
 import java.io.IOException;
 import java.net.URI;
@@ -18,6 +21,11 @@ import java.util.*;
 public class Main {
 
     public static void main(String[] args) throws Exception{
+
+        Tool timeTool = new CurrentTimeTool();
+        ToolRegistry toolRegistry = new ToolRegistry();
+        toolRegistry.register(timeTool);
+
 
         ModelClient modelClient = new BailianModelClient();
 
@@ -51,16 +59,16 @@ public class Main {
 
 
                 ToolCall toolCall = assistantMessage.tool_calls().get(0);
-                System.out.println("请求工具：" + toolCall.function().name());
+                String toolName = toolCall.function().name();
+                String arguments = toolCall.function().arguments();
 
-                String toolResult = null;
-                if (toolCall.function().name().equals("get_current_time")) {
-                    toolResult = "当前系统时间是：" + LocalDateTime.now();
+                if(!timeTool.name().equals(toolName)){
+                    throw new IllegalArgumentException("不支持工具: " + toolName);
                 }
-                System.out.println(toolResult);
+
+                String toolResult = toolRegistry.execute(toolName, arguments);
 
                 Message toolMessage = new Message("tool", toolResult, null, toolCall.id());
-
                 messages.add(toolMessage);
             }
 

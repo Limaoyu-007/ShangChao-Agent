@@ -24,10 +24,10 @@ public class Main {
 
         Tool timeTool = new CurrentTimeTool();
         ToolRegistry toolRegistry = new ToolRegistry();
+
         toolRegistry.register(timeTool);
 
-
-        ModelClient modelClient = new BailianModelClient();
+        ModelClient modelClient = new BailianModelClient(toolRegistry);
 
         Scanner scanner = new Scanner(System.in);
         SessionStore store = new FileSessionStore();

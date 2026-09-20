@@ -5,6 +5,7 @@ import agent.Message;
 import agent.ToolCall;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import tool.ToolRegistry;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -15,39 +16,35 @@ import java.util.List;
 import java.util.Map;
 
 public class BailianModelClient implements ModelClient {
+
+    private final ToolRegistry toolRegistry;
+
+    public BailianModelClient(ToolRegistry toolRegistry) {
+        this.toolRegistry = toolRegistry;
+    }
+
+
     @Override
     public Message chat(List<Message> messages) throws Exception {
+
+
 
         String key = "sk-8b292221d3be4b9683926e4f459e332f";
         String url = "https://llm-qhj2oroek3k6dtet.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions";
 
+
+
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", "qwen3.8-27b");
         requestBody.put("messages", messages);
-
-        //
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("type", "object");
-        parameters.put("properties", new HashMap<>());
-        parameters.put("required", List.of());
-
-        Map<String, Object> function = new HashMap<>();
-        function.put("name", "get_current_time");
-        function.put("description", "获取当前系统时间");
-        function.put("parameters", parameters);
-
-        Map<String, Object> tool = new HashMap<>();
-        tool.put("type", "function");
-        tool.put("function", function);
-
-        requestBody.put("tools", List.of(tool));
-        //
+        requestBody.put("tools", toolRegistry.getToolDefinitions());
 
 
 
         ObjectMapper objectMapper = new ObjectMapper();
         String body = objectMapper.writeValueAsString(requestBody);
 
+        System.out.println("Request Body: " + body);
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()

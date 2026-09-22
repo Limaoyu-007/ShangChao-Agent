@@ -9,6 +9,8 @@ import store.SessionStore;
 import tool.CurrentTimeTool;
 import tool.Tool;
 import tool.ToolRegistry;
+import tool.github.GithubClient;
+import tool.github.GithubTool;
 
 import java.io.IOException;
 import java.net.URI;
@@ -22,10 +24,15 @@ public class Main {
 
     public static void main(String[] args) throws Exception{
 
-        Tool timeTool = new CurrentTimeTool();
+
         ToolRegistry toolRegistry = new ToolRegistry();
 
-        toolRegistry.register(timeTool);
+        toolRegistry.register(
+                new CurrentTimeTool()
+        );
+        toolRegistry.register(
+                new GithubTool(new GithubClient())
+        );
 
         ModelClient modelClient = new BailianModelClient(toolRegistry);
 

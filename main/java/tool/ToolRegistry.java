@@ -41,6 +41,9 @@ public class ToolRegistry {
         return definitions;
     }
 
+    public boolean contains(String name) {
+        return tools.containsKey(name);
+    }
 
 
 }

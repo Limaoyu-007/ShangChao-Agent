@@ -35,6 +35,10 @@ public class Main {
         List<Message> messages = store.load();
 
 
+        Agent agent = new Agent(
+                modelClient,
+                toolRegistry
+        );
 
 
         while (true) {
@@ -44,33 +48,9 @@ public class Main {
                 break;
             messages.add(new Message("user", user_input));
 
+            String reply = agent.run(messages);
 
-
-            while (true) {
-                //返回后的单个消息
-                Message assistantMessage = modelClient.chat(messages);
-                messages.add(assistantMessage);
-
-                if (assistantMessage.tool_calls() == null) {
-                    System.out.println("Assistant: " + assistantMessage.content());
-                    messages.add(assistantMessage);
-                    break;
-                }
-
-
-                ToolCall toolCall = assistantMessage.tool_calls().get(0);
-                String toolName = toolCall.function().name();
-                String arguments = toolCall.function().arguments();
-
-                if(!timeTool.name().equals(toolName)){
-                    throw new IllegalArgumentException("不支持工具: " + toolName);
-                }
-
-                String toolResult = toolRegistry.execute(toolName, arguments);
-
-                Message toolMessage = new Message("tool", toolResult, null, toolCall.id());
-                messages.add(toolMessage);
-            }
+            System.out.println("Assistant: " + reply);
 
         }
 

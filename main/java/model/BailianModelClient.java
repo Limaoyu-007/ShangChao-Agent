@@ -29,7 +29,7 @@ public class BailianModelClient implements ModelClient {
 
 
 
-        String key = "sk-8b292221d3be4b9683926e4f459e332f";
+        String key = System.getenv("DASHSCOPE_API_KEY");
         String url = "https://llm-qhj2oroek3k6dtet.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions";
 
 
@@ -44,7 +44,7 @@ public class BailianModelClient implements ModelClient {
         ObjectMapper objectMapper = new ObjectMapper();
         String body = objectMapper.writeValueAsString(requestBody);
 
-        System.out.println("Request Body: " + body);
+        //System.out.println("Request Body: " + body);
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()

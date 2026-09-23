@@ -33,13 +33,21 @@ public class Agent {
             String toolName = toolCall.function().name();
             String arguments = toolCall.function().arguments();
 
-            if (!toolRegistry.contains(toolName)) {
-                throw new IllegalArgumentException("工具未注册: " + toolName);
+
+            String toolResult;
+            try {
+
+                if (!toolRegistry.contains(toolName)) {
+                    throw new IllegalArgumentException("工具未注册: " + toolName);
+                }
+
+                toolResult = toolRegistry.execute(toolName, arguments);
+            } catch (Exception e) {
+                toolResult = "工具调用失败: " + e.getMessage();
             }
 
-            String toolResult = toolRegistry.execute(toolName, arguments);
-
             Message toolMessage = new Message("tool", toolResult, null, toolCall.id());
+
             messages.add(toolMessage);
         }
 

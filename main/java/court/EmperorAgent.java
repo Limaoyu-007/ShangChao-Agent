@@ -21,6 +21,8 @@ public class EmperorAgent {
     private final CourtStore store;
 
     private final ObjectMapper mapper = new ObjectMapper();
+    // 保存本场朝会的消息历史
+    private final List<Message> messages = new ArrayList<>();
 
     public EmperorAgent(Agent agent, CourtStore store) {
         this.agent = agent;
@@ -30,39 +32,16 @@ public class EmperorAgent {
     // 皇帝被唤醒后执行一次自主决策
     public Decision wakeUp() throws Exception {
 
-        // 1. 读取皇帝的治理原则
-        String principles = Files.readString(
-                Path.of("court-principles.txt")
-        );
+        // 1. 准备本次运行的上下文
+        prepareContext();
 
-        // 2. 读取当前政务
-        String affairs = Files.readString(
-                Path.of("court-affairs.txt")
-        );
-
-        // 3. 读取历史决策
-        List<Decision> history = store.load();
-
-        // 4. 组装本次运行的上下文
-        String context = buildContext(affairs, history);
-
-        List<Message> messages = new ArrayList<>();
-
-        messages.add(
-                new Message("system", principles)
-        );
-
-        messages.add(
-                new Message("user", context)
-        );
-
-        // 5. 调用现有 Agent Runtime
+        // 2. 调用现有 Agent
         String reply = agent.run(messages);
 
-        // 6. 解析皇帝作出的决定
+        // 3. 将模型回复解析为正式决策
         Decision decision = parseDecision(reply);
 
-        // 7. 保存决策
+        // 4. 保存决策
         store.add(decision);
 
         return decision;
@@ -203,4 +182,42 @@ public class EmperorAgent {
                 ).toString()
         );
     }
+
+    // 为一次新的运行准备上下文
+    private void prepareContext() throws Exception {
+
+        // 1. 读取治理原则
+        String principles = Files.readString(
+                Path.of("court-principles.txt")
+        );
+
+        // 2. 读取当前政务
+        String affairs = Files.readString(
+                Path.of("court-affairs.txt")
+        );
+
+        // 3. 读取历史决策
+        List<Decision> history = store.load();
+
+        // 4. 组织模型需要了解的信息
+        String context = buildContext(affairs, history);
+
+        // 5. 新的一场运行，从新的消息历史开始
+        messages.clear();
+
+        messages.add(
+                new Message("system", principles)
+        );
+
+        messages.add(
+                new Message("user", context)
+        );
+    }
+
+
+
+
+
+
+
 }

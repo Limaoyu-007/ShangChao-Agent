@@ -1,25 +1,16 @@
 package agent;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import model.BailianModelClient;
 import model.ModelClient;
 import store.FileSessionStore;
 import store.SessionStore;
 import tool.CurrentTimeTool;
-import tool.Tool;
 import tool.ToolRegistry;
 import tool.github.GithubClient;
 import tool.github.GithubTool;
 import tool.chaoxing.ChaoxingClient;
 import tool.chaoxing.HomeworkTool;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.LocalDateTime;
 import java.util.*;
 
 public class Main {
@@ -37,7 +28,7 @@ public class Main {
         );
         toolRegistry.register(new HomeworkTool(new ChaoxingClient()));
 
-        ModelClient modelClient = new BailianModelClient(toolRegistry);
+        ModelClient modelClient = new BailianModelClient();
 
         Scanner scanner = new Scanner(System.in);
         SessionStore store = new FileSessionStore();
@@ -56,7 +47,7 @@ public class Main {
             String user_input = scanner.nextLine();
             if(user_input.equals("exit"))
                 break;
-            messages.add(new Message("user", user_input));
+            messages.add(Message.user(user_input));
 
             String reply = agent.run(messages);
 

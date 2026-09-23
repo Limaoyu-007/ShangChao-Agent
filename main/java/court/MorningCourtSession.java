@@ -1,152 +1,64 @@
 package court;
 
-import agent.Agent;
 import agent.Message;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import model.ModelClient;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
+/** 皇帝的早朝会话。每场一个实例，消息仅在本场保留，不与后台共享。 */
 public class MorningCourtSession {
-
-    private final Agent agent;
+    private final ModelClient model;
     private final CourtStore store;
-
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    // 只保存本场早朝的对话
+    private final DecisionParser parser = new DecisionParser();
     private final List<Message> messages = new ArrayList<>();
-
     private boolean started;
     private boolean ended;
 
-    public MorningCourtSession(Agent agent, CourtStore store) {
-        this.agent = agent;
+    public MorningCourtSession(ModelClient model, CourtStore store) {
+        this.model = model;
         this.store = store;
     }
 
-    /**
-     * 开始一场早朝。
-     * 由皇帝主动开场，不等待用户先说话。
-     */
+    /** 主动开场。只有成功获得并处理回应，才将会话标记为已开始。 */
     public CourtReply start() throws Exception {
-
-        if (started) {
-            throw new IllegalStateException(
-                    "这场早朝已经开始，不能重复开始"
-            );
-        }
-
-        prepareContext();
-
+        if (started) throw new IllegalStateException("这场早朝已经开始，不能重复开始");
+        List<Message> initial = CourtContext.load(store, courtInstructions(),
+                "大臣已经进入朝堂，早朝开始。请你主动主持并发表开场讲话。");
+        CourtReply reply = nextReply(initial);
         started = true;
-
-        return nextReply();
+        return reply;
     }
 
-    /**
-     * 接收大臣发言，继续当前朝会。
-     */
     public CourtReply respond(String speech) throws Exception {
+        if (!started) throw new IllegalStateException("早朝尚未开始");
+        if (ended) throw new IllegalStateException("本场早朝已经结束");
+        if (speech == null || speech.isBlank()) throw new IllegalArgumentException("发言不能为空");
 
-        if (!started) {
-            throw new IllegalStateException(
-                    "早朝尚未开始"
-            );
-        }
-
-        if (ended) {
-            throw new IllegalStateException(
-                    "本场早朝已经结束"
-            );
-        }
-
-        if (speech == null || speech.isBlank()) {
-            throw new IllegalArgumentException(
-                    "发言不能为空"
-            );
-        }
-
-        // 追加发言，不重新初始化上下文
-        messages.add(
-                new Message("user", speech.trim())
-        );
-
-        return nextReply();
+        // 先在副本上处理。请求、解析或保存失败，不污染已确认的本场对话。
+        List<Message> candidate = new ArrayList<>(messages);
+        candidate.add(Message.user(speech.trim()));
+        return nextReply(candidate);
     }
 
-    /**
-     * 准备本场早朝的上下文。
-     */
-    private void prepareContext() throws Exception {
+    private CourtReply nextReply(List<Message> candidate) throws Exception {
+        Message response = model.chatText(candidate);
+        CourtReply reply = parser.parseCourtReply(response.content());
+        if (reply.decision() != null) store.add(reply.decision());
 
-        String principles = Files.readString(
-                Path.of("court-principles.txt")
-        );
-
-        String affairs = Files.readString(
-                Path.of("court-affairs.txt")
-        );
-
-        List<Decision> history = store.load();
-
-        int start = Math.max(0, history.size() - 10);
-
-        List<Decision> recent = history.subList(
-                start,
-                history.size()
-        );
-
-        String context = """
-                【当前时间】
-                %s
-
-                【当前政务】
-                %s
-
-                【最近的正式决策】
-                %s
-
-                【本次事件】
-                大臣已经进入朝堂，早朝开始。
-                请你主动主持并发表开场讲话。
-                """
-                .formatted(
-                        now(),
-                        affairs,
-                        mapper.writerWithDefaultPrettyPrinter()
-                                .writeValueAsString(recent)
-                );
-
+        // ModelClient 不修改历史；业务结果处理成功后，才由会话提交这轮消息。
+        candidate.add(response);
         messages.clear();
-
-        messages.add(
-                new Message(
-                        "system",
-                        principles + "\n\n" + courtInstructions()
-                )
-        );
-
-        messages.add(
-                new Message("user", context)
-        );
+        messages.addAll(candidate);
+        ended = reply.ended();
+        return reply;
     }
 
-    /**
-     * 朝会专用规则与返回格式。
-     */
     private String courtInstructions() {
         return """
                 【当前运行场景：早朝】
 
                 你仍然是「上朝」系统的皇帝。
+                你没有可调用工具，只负责判断，不要声称已执行工具或现实操作。
                 当前与会用户是一名大臣，可以复命、上奏、
                 进谏、提出异议和提供现实信息。
 
@@ -227,140 +139,5 @@ public class MorningCourtSession {
                 上述内容只是格式示例，不是要求你照抄的决定。
                 决策 ID 和时间由程序生成，不要自行生成。
                 """;
-    }
-
-    /**
-     * 执行一轮模型调用，处理正式决策。
-     */
-    private CourtReply nextReply() throws Exception {
-
-        String rawReply = agent.run(messages);
-
-        CourtReply reply = parseReply(rawReply);
-
-        // 普通发言不写入正式决策文件
-        if (reply.decision() != null) {
-            store.add(reply.decision());
-        }
-
-        ended = reply.ended();
-
-        return reply;
-    }
-
-    /**
-     * 解析皇帝的结构化回应。
-     */
-    private CourtReply parseReply(String rawReply) throws Exception {
-
-        if (rawReply == null || rawReply.isBlank()) {
-            throw new IllegalStateException(
-                    "皇帝没有返回朝会回应"
-            );
-        }
-
-        String json = rawReply.trim();
-
-        // 兼容模型偶尔返回的 Markdown 代码围栏
-        if (json.startsWith("```")) {
-            json = json.replaceFirst(
-                    "^```(?:json)?\\s*", ""
-            );
-
-            json = json.replaceFirst(
-                    "\\s*```$", ""
-            );
-        }
-
-        JsonNode root = mapper.readTree(json);
-
-        if (root == null || !root.isObject()) {
-            throw new IllegalStateException(
-                    "朝会回应必须是 JSON 对象"
-            );
-        }
-
-        String speech = requiredText(root, "speech");
-
-        JsonNode endedNode = root.get("ended");
-
-        if (endedNode == null || !endedNode.isBoolean()) {
-            throw new IllegalStateException(
-                    "ended 必须是布尔值"
-            );
-        }
-
-        if (!root.has("decision")) {
-            throw new IllegalStateException(
-                    "缺少 decision 字段；没有新决策时应为 null"
-            );
-        }
-
-        Decision decision = null;
-
-        JsonNode decisionNode = root.get("decision");
-
-        if (!decisionNode.isNull()) {
-
-            if (!decisionNode.isObject()) {
-                throw new IllegalStateException(
-                        "decision 必须是对象或 null"
-                );
-            }
-
-            String type = requiredText(decisionNode, "type");
-            String content = requiredText(decisionNode, "content");
-            String reason = requiredText(decisionNode, "reason");
-
-            if (!List.of(
-                    "DECIDE",
-                    "INVESTIGATE",
-                    "WAIT"
-            ).contains(type)) {
-
-                throw new IllegalStateException(
-                        "无效的决策类型：" + type
-                );
-            }
-
-            decision = new Decision(
-                    UUID.randomUUID().toString(),
-                    type,
-                    content,
-                    reason,
-                    now()
-            );
-        }
-
-        return new CourtReply(
-                speech,
-                decision,
-                endedNode.asBoolean()
-        );
-    }
-
-    /**
-     * 读取必填的非空文本字段。
-     */
-    private String requiredText(JsonNode node, String field) {
-
-        JsonNode value = node.get(field);
-
-        if (value == null
-                || !value.isTextual()
-                || value.asText().isBlank()) {
-
-            throw new IllegalStateException(
-                    field + " 必须是非空字符串"
-            );
-        }
-
-        return value.asText();
-    }
-
-    private String now() {
-        return ZonedDateTime.now(
-                ZoneId.of("Asia/Shanghai")
-        ).toString();
     }
 }

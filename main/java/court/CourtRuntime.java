@@ -1,14 +1,12 @@
 
 package court;
 
-import agent.Agent;
 
 import model.BailianModelClient;
 import model.ModelClient;
 
-import tool.CurrentTimeTool;
-import tool.ToolRegistry;
 
+/** 后台单次触发入口，不等待用户输入；不是定时调度器。 */
 public class CourtRuntime {
 
     private final EmperorAgent emperor;
@@ -52,37 +50,20 @@ public class CourtRuntime {
     public static void main(String[] args)
             throws Exception {
 
-        // 1. 为皇帝创建独立的工具注册器
-        ToolRegistry emperorTools = new ToolRegistry();
-
-        emperorTools.register(
-                new CurrentTimeTool()
-        );
-
-        // 2. 创建模型客户端
-        ModelClient modelClient =
-                new BailianModelClient(emperorTools);
-
-        // 3. 复用现有 Agent
-        Agent agent = new Agent(
-                modelClient,
-                emperorTools
-        );
-
-        // 4. 创建政务存储
+        // 皇帝直接请求模型，不创建工具注册器或工具执行循环。
+        ModelClient modelClient = new BailianModelClient();
         CourtStore store = new CourtStore();
 
-        // 5. 创建皇帝 Agent
+        // 与早朝共享正式记录，但本次上下文独立。
         EmperorAgent emperor = new EmperorAgent(
-                agent,
+                modelClient,
                 store
         );
 
-        // 6. 创建朝廷运行系统
+        // 组装入口并触发一次。
         CourtRuntime runtime =
                 new CourtRuntime(emperor);
 
-        // 7. 主动唤醒皇帝
         runtime.runOnce();
     }
 }

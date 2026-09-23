@@ -1,15 +1,13 @@
 package court;
 
-import agent.Agent;
 
 import model.BailianModelClient;
 import model.ModelClient;
 
-import tool.CurrentTimeTool;
-import tool.ToolRegistry;
 
 import java.util.Scanner;
 
+/** 早朝控制台入口，只负责交互；模型调用和本场状态由 Session 管理。 */
 public class MorningCourtRuntime {
 
     private final MorningCourtSession session;
@@ -98,25 +96,14 @@ public class MorningCourtRuntime {
 
     public static void main(String[] args) throws Exception {
 
-        ToolRegistry tools = new ToolRegistry();
-
-        tools.register(
-                new CurrentTimeTool()
-        );
-
-        ModelClient modelClient =
-                new BailianModelClient(tools);
-
-        Agent agent = new Agent(
-                modelClient,
-                tools
-        );
+        // 早朝中的皇帝同样没有工具能力。
+        ModelClient modelClient = new BailianModelClient();
 
         CourtStore store = new CourtStore();
 
         MorningCourtSession session =
                 new MorningCourtSession(
-                        agent,
+                        modelClient,
                         store
                 );
 

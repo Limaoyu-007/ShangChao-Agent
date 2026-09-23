@@ -2,12 +2,11 @@ package agent;
 
 import model.ModelClient;
 import tool.ToolRegistry;
-
-import java.util.ArrayList;
 import java.util.List;
 
+/** 工具型 Agent 的执行循环。皇帝的纯决策路径不经过本类。 */
 public class Agent {
-
+    private static final int MAX_MODEL_ROUNDS = 12;
     private final ModelClient modelClient;
     private final ToolRegistry toolRegistry;
 
@@ -16,40 +15,33 @@ public class Agent {
         this.toolRegistry = toolRegistry;
     }
 
+    /** 会向调用方的历史追加 assistant 和 tool 消息。 */
     public String run(List<Message> messages) throws Exception {
-
-        while (true) {
-            //返回后的单个消息
-            Message assistantMessage = modelClient.chat(messages);
-            messages.add(assistantMessage);
-
-            if (assistantMessage.tool_calls() == null) {
-
-                return assistantMessage.content();
-            }
-
-
-            ToolCall toolCall = assistantMessage.tool_calls().get(0);
-            String toolName = toolCall.function().name();
-            String arguments = toolCall.function().arguments();
-
-
-            String toolResult;
-            try {
-
-                if (!toolRegistry.contains(toolName)) {
-                    throw new IllegalArgumentException("工具未注册: " + toolName);
+        for (int round = 0; round < MAX_MODEL_ROUNDS; round++) {
+            Message reply = modelClient.chat(messages, toolRegistry.getToolDefinitions());
+            if (reply == null) throw new IllegalStateException("模型返回空消息");
+            messages.add(reply);
+            if (reply.tool_calls() == null || reply.tool_calls().isEmpty()) {
+                if (reply.content() == null || reply.content().isBlank()) {
+                    throw new IllegalStateException("模型没有返回有效文本");
                 }
-
-                toolResult = toolRegistry.execute(toolName, arguments);
-            } catch (Exception e) {
-                toolResult = "工具调用失败: " + e.getMessage();
+                return reply.content();
             }
-
-            Message toolMessage = new Message("tool", toolResult, null, toolCall.id());
-
-            messages.add(toolMessage);
+            // 每个调用都补齐对应结果，再继续请求模型。
+            for (ToolCall call : reply.tool_calls()) {
+                String result;
+                try {
+                    result = toolRegistry.execute(call.function().name(), call.function().arguments());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                } catch (Exception e) {
+                    result = "工具调用失败: " + e.getMessage();
+                }
+                messages.add(Message.toolResult(call.id(), result));
+            }
         }
-
+        // 不自动重跑：此前可能已执行有副作用的工具。
+        throw new IllegalStateException("工具型 Agent 达到 " + MAX_MODEL_ROUNDS + " 轮上限，已停止继续请求");
     }
 }

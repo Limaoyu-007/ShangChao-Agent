@@ -11,6 +11,8 @@ import tool.Tool;
 import tool.ToolRegistry;
 import tool.github.GithubClient;
 import tool.github.GithubTool;
+import tool.chaoxing.ChaoxingClient;
+import tool.chaoxing.HomeworkTool;
 
 import java.io.IOException;
 import java.net.URI;
@@ -33,6 +35,7 @@ public class Main {
         toolRegistry.register(
                 new GithubTool(new GithubClient())
         );
+        toolRegistry.register(new HomeworkTool(new ChaoxingClient()));
 
         ModelClient modelClient = new BailianModelClient(toolRegistry);
 

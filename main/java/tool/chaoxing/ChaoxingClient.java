@@ -117,8 +117,8 @@ public class ChaoxingClient {
 
     private void ensureLogin() throws Exception {
         if (loggedIn) return;
-        String phone = "";
-        String password = "";
+        String phone = System.getenv("CHAOXING_PHONE");
+        String password = System.getenv("CHAOXING_PASSWORD");
         if (phone == null || phone.isBlank() || password == null || password.isBlank()) {
             throw new IllegalStateException("请先设置 CHAOXING_PHONE 和 CHAOXING_PASSWORD 环境变量");
         }

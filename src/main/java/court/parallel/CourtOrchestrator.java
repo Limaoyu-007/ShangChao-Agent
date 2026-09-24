@@ -267,18 +267,17 @@ public class CourtOrchestrator {
             session.start();
             saveRecord();
 
-            System.out.println(
-                    "\n========== 多 Agent 早朝 =========="
-            );
-
-            System.out.println(
-                    "皇帝与大臣开始独立思考。"
-            );
+            System.out.println("\n【开朝】皇帝与大臣已入朝。");
 
             // 先完成宣旨，再触发模型。第一次快照同时包含开场和宣旨事件。
             CourtEvent announcement = session.announceLatestEdict();
             saveRecord();
-            System.out.println(announcement.content());
+            if (CourtEvent.EDICT_ANNOUNCED.equals(announcement.type())) {
+                System.out.println("\n【圣旨｜正式决定】");
+                System.out.println(announcement.content().replaceFirst("^【宣旨】\\R?", "").stripTrailing());
+            } else {
+                System.out.println("\n【朝会提示】" + announcement.content());
+            }
             broadcast(announcement);
 
             // 3. 协调线程持续接收和处理运行事件
@@ -507,11 +506,7 @@ public class CourtOrchestrator {
 
         modelCalls++;
 
-        System.out.println(
-                "[系统] " + participant.name()
-                        + " 开始思考，会议版本 V"
-                        + snapshot.version()
-        );
+        System.out.println("【思考中】" + participant.name());
 
         // 提交到虚拟线程，不阻塞会议协调线程
         executor.submit(() -> {
@@ -574,9 +569,7 @@ public class CourtOrchestrator {
 
         actionLimitNotified = false;
 
-        System.out.println(
-                "\n你：" + speech
-        );
+        printSpeech("你｜上奏", speech, null);
 
         broadcast(event);
     }
@@ -801,10 +794,10 @@ public class CourtOrchestrator {
 
         saveRecord();
 
-        System.out.println(
-                "\n" + participant.name()
-                        + "：" + action.speech()
-        );
+        String label = "emperor".equals(participant.id())
+                ? participant.name() + "｜朝会发言"
+                : participant.name() + "｜建议";
+        printSpeech(label, action.speech(), action.targetId());
 
         broadcast(event);
     }
@@ -825,14 +818,21 @@ public class CourtOrchestrator {
 
         saveRecord();
 
-        System.out.println(
-                "\n" + participant.name()
-                        + "：" + action.speech()
-        );
+        printSpeech(participant.name() + "｜退朝", action.speech(), null);
+        System.out.println("\n========== 本场朝会结束 ==========");
+    }
 
-        System.out.println(
-                "\n========== 退朝 =========="
-        );
+    /** 只格式化控制台展示；会议事件与持久化内容保持原样。 */
+    private void printSpeech(String label, String speech, String targetId) {
+        String target = targetId == null ? "" : " → " + displayName(targetId);
+        System.out.println("\n【" + label + target + "】");
+        System.out.println(speech);
+    }
+
+    private String displayName(String id) {
+        if ("user".equals(id)) return "你";
+        CourtParticipant participant = participants.get(id);
+        return participant == null ? id : participant.name();
     }
 
     /** 保存成功后才展示和广播。失败则中止运行，保留上一次完整文件并报告错误。 */

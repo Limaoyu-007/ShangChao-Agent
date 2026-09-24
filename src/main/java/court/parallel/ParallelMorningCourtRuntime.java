@@ -33,10 +33,18 @@ public class ParallelMorningCourtRuntime {
                 new EmperorParticipant(modelClient);
 
 
-        // 3. 创建大臣 Agent
+        // 3. 创建礼部大臣 Agent
         CourtParticipant minister =
                 new MinisterParticipant(modelClient);
 
+
+        // 户部与礼部使用同一模型客户端，各自构建独立的角色请求。
+        CourtParticipant finance =
+                new FinanceMinisterParticipant(modelClient);
+
+        // 工部与吏部也只参与议事，复用现有无工具调用流程。
+        CourtParticipant works = new WorksMinisterParticipant(modelClient);
+        CourtParticipant personnel = new PersonnelMinisterParticipant(modelClient);
 
         // 4. 创建圣旨存储
         EdictStore store = new EdictStore();
@@ -53,7 +61,10 @@ public class ParallelMorningCourtRuntime {
                         session,
                         List.of(
                                 emperor,
-                                minister
+                                minister,
+                                finance,
+                                works,
+                                personnel
                         )
                 );
 
@@ -62,7 +73,7 @@ public class ParallelMorningCourtRuntime {
                 
                 ========== 多 Agent 早朝 ==========
                 
-                皇帝与大臣将并行思考。
+                皇帝、礼部、户部、工部与吏部将并行思考。
                 
                 你可以随时输入发言。
                 输入 /exit 可以中止朝会。

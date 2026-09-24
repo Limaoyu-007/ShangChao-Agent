@@ -13,7 +13,7 @@ public final class DecisionParser {
     private final ObjectMapper mapper = new ObjectMapper()
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
-    public Decision parseDecision(String reply) throws Exception {
+    public Edict parseDecision(String reply) throws Exception {
         return decision(readObject(reply));
     }
 
@@ -26,19 +26,22 @@ public final class DecisionParser {
         }
         JsonNode node = root.get("decision");
         if (node == null) {
-            throw new IllegalStateException("缺少 decision 字段；没有新决策时应为 null");
+            throw new IllegalStateException("缺少 decision 字段；早朝必须返回 null");
         }
-        return new CourtReply(speech, node.isNull() ? null : decision(node), ended.asBoolean());
+        if (!node.isNull()) {
+            throw new IllegalStateException("早朝不能生成圣旨，decision 必须为 null");
+        }
+        return new CourtReply(speech, null, ended.asBoolean());
     }
 
-    private Decision decision(JsonNode node) {
+    private Edict decision(JsonNode node) {
         if (!node.isObject()) throw new IllegalStateException("决策必须是 JSON 对象");
         String type = text(node, "type");
         if (!List.of("DECIDE", "INVESTIGATE", "WAIT").contains(type)) {
             throw new IllegalStateException("无效的决策类型：" + type);
         }
         // ID 和时间属于正式记录，由 Java 生成，不接受模型替程序编号。
-        return new Decision(UUID.randomUUID().toString(), type,
+        return new Edict(UUID.randomUUID().toString(), type,
                 text(node, "content"), text(node, "reason"),
                 ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toString());
     }

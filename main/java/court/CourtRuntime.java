@@ -22,29 +22,29 @@ public class CourtRuntime {
 
         System.out.println("正在唤醒皇帝...");
 
-        Decision decision = emperor.wakeUp();
+        Edict decision = emperor.wakeUp();
 
-        System.out.println("\n========== 皇帝决策 ==========");
+        System.out.println("\n========== 后台圣旨 ==========");
 
         System.out.println(
-                "决策类型：" + decision.type()
+                "圣旨类型：" + decision.type()
         );
 
         System.out.println(
-                "决策内容：" + decision.content()
+                "圣旨内容：" + decision.content()
         );
 
         System.out.println(
-                "决策依据：" + decision.reason()
+                "圣旨依据：" + decision.reason()
         );
 
         System.out.println(
-                "决策编号：" + decision.id()
+                "圣旨编号：" + decision.id()
         );
 
         System.out.println("============================");
 
-        System.out.println("决策已保存。");
+        System.out.println("圣旨已保存。");
     }
 
     public static void main(String[] args)

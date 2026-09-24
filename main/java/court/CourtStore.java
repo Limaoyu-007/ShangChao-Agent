@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** 正式决策的文件存储，沿用 court-state.json 的数组格式。 */
+/** 圣旨的文件存储，沿用 court-state.json 的数组格式。 */
 public class CourtStore {
     private final Path filePath;
     private final ObjectMapper mapper = new ObjectMapper()
@@ -26,16 +26,16 @@ public class CourtStore {
         this.filePath = filePath.toAbsolutePath().normalize();
     }
 
-    public List<Decision> load() throws Exception {
+    public List<Edict> load() throws Exception {
         if (!Files.exists(filePath)) return new ArrayList<>();
-        List<Decision> decisions = mapper.readValue(Files.readString(filePath), new TypeReference<>() {});
+        List<Edict> decisions = mapper.readValue(Files.readString(filePath), new TypeReference<>() {});
         if (decisions == null || decisions.contains(null)) {
             throw new IllegalStateException("决策文件必须是有效数组，不能包含 null；不会自动重置旧数据");
         }
         return decisions;
     }
 
-    public void add(Decision decision) throws Exception {
+    public void add(Edict decision) throws Exception {
         Objects.requireNonNull(decision, "不能保存空决策");
         Files.createDirectories(filePath.getParent());
         Path lockPath = filePath.resolveSibling(filePath.getFileName() + ".lock");
@@ -48,14 +48,14 @@ public class CourtStore {
                 if (lock == null) {
                     throw new IllegalStateException("其他进程正在保存决策，本次未保存，请稍后重试");
                 }
-                List<Decision> decisions = load();
+                List<Edict> decisions = load();
                 decisions.add(decision);
                 saveSnapshot(decisions);
             }
         }
     }
 
-    private void saveSnapshot(List<Decision> decisions) throws Exception {
+    private void saveSnapshot(List<Edict> decisions) throws Exception {
         Path temporary = Files.createTempFile(filePath.getParent(), "court-state-", ".tmp");
         try {
             Files.writeString(temporary, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(decisions));

@@ -5,7 +5,8 @@ package court;
  */
 public record CourtReply(
         String speech,
-        Decision decision,
+        // 旧版协议兼容字段；早朝解析器强制要求为 null。
+        Edict decision,
         boolean ended
 ) {
 }

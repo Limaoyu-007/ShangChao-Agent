@@ -14,11 +14,13 @@ public final class CourtContext {
     private CourtContext() {}
 
     public static List<Message> load(CourtStore store, String instructions, String event) throws Exception {
-        String principles = Files.readString(Path.of("court-principles.txt"));
+        // 旧版两个皇帝入口也同时加载共同原则和皇帝专属规则。
+        String principles = Files.readString(Path.of("court-governance-principles.txt"))
+                + "\n\n" + Files.readString(Path.of("court-principles.txt"));
         String affairs = Files.readString(Path.of("court-affairs.txt"));
-        List<Decision> history = store.load();
+        List<Edict> history = store.load();
         // 当前仅提供近期历史，不代表所有仍有效的旨意；后续治理状态应单独建模。
-        List<Decision> recent = history.subList(Math.max(0, history.size() - 10), history.size());
+        List<Edict> recent = history.subList(Math.max(0, history.size() - 10), history.size());
         String context = """
                 【当前时间】
                 %s
@@ -26,7 +28,7 @@ public final class CourtContext {
                 【当前政务】
                 %s
 
-                【最近的正式决策】
+                【最近的圣旨】
                 %s
 
                 【本次事件】

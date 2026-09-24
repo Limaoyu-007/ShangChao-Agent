@@ -48,7 +48,7 @@ public class MorningCourtRuntime {
 
             if ("/exit".equalsIgnoreCase(speech)) {
                 System.out.println(
-                        "本场会话已由你中止；已保存的正式决策仍保留。"
+                        "本场会话已由你中止；临时议事记录不保存。"
                 );
                 break;
             }
@@ -67,7 +67,7 @@ public class MorningCourtRuntime {
 
                 if ("/exit".equalsIgnoreCase(speech)) {
                     System.out.println(
-                            "本场会话已由你中止；已保存的正式决策仍保留。"
+                            "本场会话已由你中止；临时议事记录不保存。"
                     );
                     return;
                 }
@@ -82,16 +82,7 @@ public class MorningCourtRuntime {
         System.out.println("\n皇帝：");
         System.out.println(reply.speech());
 
-        if (reply.decision() != null) {
 
-            Decision decision = reply.decision();
-
-            System.out.println("\n【正式旨意】");
-            System.out.println(decision.content());
-
-            // 不自动展示 reason。
-            // 大臣可以在下一轮发言中询问依据。
-        }
     }
 
     public static void main(String[] args) throws Exception {

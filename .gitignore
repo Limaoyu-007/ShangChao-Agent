@@ -1,0 +1,27 @@
+# Build and editor files
+/target/
+/.idea/
+/.vscode/
+*.iml
+*.class
+*.log
+.DS_Store
+Thumbs.db
+
+# Local credentials and environment
+.env
+.env.*
+!.env.example
+
+# Personal input and generated history; publish only examples/
+/court-affairs.txt
+/court-governance-principles.txt
+/court-state.json
+/court-state.json.lock
+/court-records/
+/session.json
+/backups/
+*.tmp
+
+# Local workspace collaboration instructions
+/AGENTS.md

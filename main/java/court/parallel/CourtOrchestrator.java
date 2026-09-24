@@ -1,6 +1,9 @@
 
 package court.parallel;
 
+import court.CourtRecordStore;
+import java.util.Objects;
+
 
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -27,6 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Agent 工作线程只负责调用模型并返回结果。
  */
 public class CourtOrchestrator {
+
+    private final CourtRecordStore recordStore;
 
     // 单场会议最多发起的模型请求次数
     private static final int MAX_MODEL_CALLS = 80;
@@ -179,6 +184,13 @@ public class CourtOrchestrator {
             CourtSession session,
             List<CourtParticipant> agents
     ) {
+        this(session, agents, new CourtRecordStore());
+    }
+
+    public CourtOrchestrator(CourtSession session, List<CourtParticipant> agents,
+                             CourtRecordStore recordStore) {
+        this.recordStore = Objects.requireNonNull(recordStore);
+
 
         if (session == null) {
             throw new IllegalArgumentException(
@@ -253,6 +265,7 @@ public class CourtOrchestrator {
 
             // 1. 正式开始会议
             session.start();
+            saveRecord();
 
             System.out.println(
                     "\n========== 多 Agent 早朝 =========="
@@ -264,6 +277,7 @@ public class CourtOrchestrator {
 
             // 先完成宣旨，再触发模型。第一次快照同时包含开场和宣旨事件。
             CourtEvent announcement = session.announceLatestEdict();
+            saveRecord();
             System.out.println(announcement.content());
             broadcast(announcement);
 
@@ -535,7 +549,7 @@ public class CourtOrchestrator {
     /**
      * 处理用户发言。
      */
-    private void onUserSpeech(String speech) {
+    private void onUserSpeech(String speech) throws Exception {
 
         if (modelCalls >= MAX_MODEL_CALLS) {
             notifyModelLimit();
@@ -552,6 +566,8 @@ public class CourtOrchestrator {
                 speech,
                 null
         );
+
+        saveRecord();
 
         // 用户发言后，开启新一轮自动讨论
         autoActions = 0;
@@ -775,13 +791,15 @@ public class CourtOrchestrator {
     private void commitSpeech(
             CourtParticipant participant,
             CourtAction action
-    ) {
+    ) throws Exception {
 
         CourtEvent event = session.speak(
                 participant.id(),
                 action.speech(),
                 action.targetId()
         );
+
+        saveRecord();
 
         System.out.println(
                 "\n" + participant.name()
@@ -798,12 +816,14 @@ public class CourtOrchestrator {
     private void commitEndCourt(
             CourtParticipant participant,
             CourtAction action
-    ) {
+    ) throws Exception {
 
         session.endCourt(
                 participant.id(),
                 action.speech()
         );
+
+        saveRecord();
 
         System.out.println(
                 "\n" + participant.name()
@@ -813,6 +833,11 @@ public class CourtOrchestrator {
         System.out.println(
                 "\n========== 退朝 =========="
         );
+    }
+
+    /** 保存成功后才展示和广播。失败则中止运行，保留上一次完整文件并报告错误。 */
+    private void saveRecord() throws Exception {
+        recordStore.save(session.sessionId(), session.events());
     }
 
 }

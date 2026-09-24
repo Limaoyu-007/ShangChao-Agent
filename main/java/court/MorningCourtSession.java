@@ -8,13 +8,13 @@ import java.util.List;
 /** 皇帝的早朝会话。每场一个实例，消息仅在本场保留，不与后台共享。 */
 public class MorningCourtSession {
     private final ModelClient model;
-    private final CourtStore store;
+    private final EdictStore store;
     private final DecisionParser parser = new DecisionParser();
     private final List<Message> messages = new ArrayList<>();
     private boolean started;
     private boolean ended;
 
-    public MorningCourtSession(ModelClient model, CourtStore store) {
+    public MorningCourtSession(ModelClient model, EdictStore store) {
         this.model = model;
         this.store = store;
     }

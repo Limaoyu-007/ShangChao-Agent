@@ -13,8 +13,8 @@ import java.util.List;
 public final class CourtContext {
     private CourtContext() {}
 
-    public static List<Message> load(CourtStore store, String instructions, String event) throws Exception {
-        // 旧版两个皇帝入口也同时加载共同原则和皇帝专属规则。
+    public static List<Message> load(EdictStore store, String instructions, String event) throws Exception {
+        // 两个皇帝入口读取人生最高准则与角色说明，不向大臣提供。
         String principles = Files.readString(Path.of("court-governance-principles.txt"))
                 + "\n\n" + Files.readString(Path.of("court-principles.txt"));
         String affairs = Files.readString(Path.of("court-affairs.txt"));
@@ -25,7 +25,7 @@ public final class CourtContext {
                 【当前时间】
                 %s
 
-                【当前政务】
+                【当前政务：用户近况、待处理问题及待核实信息】
                 %s
 
                 【最近的圣旨】

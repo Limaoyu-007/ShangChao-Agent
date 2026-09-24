@@ -52,7 +52,7 @@ public class CourtRuntime {
 
         // 皇帝直接请求模型，不创建工具注册器或工具执行循环。
         ModelClient modelClient = new BailianModelClient();
-        CourtStore store = new CourtStore();
+        EdictStore store = new EdictStore();
 
         // 与早朝共享正式记录，但本次上下文独立。
         EmperorAgent emperor = new EmperorAgent(

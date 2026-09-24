@@ -90,7 +90,7 @@ public class MorningCourtRuntime {
         // 早朝中的皇帝同样没有工具能力。
         ModelClient modelClient = new BailianModelClient();
 
-        CourtStore store = new CourtStore();
+        EdictStore store = new EdictStore();
 
         MorningCourtSession session =
                 new MorningCourtSession(

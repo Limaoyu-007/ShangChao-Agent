@@ -1,7 +1,7 @@
 
 package court.parallel;
 
-import court.CourtStore;
+import court.EdictStore;
 import model.BailianModelClient;
 import model.ModelClient;
 
@@ -39,7 +39,7 @@ public class ParallelMorningCourtRuntime {
 
 
         // 4. 创建圣旨存储
-        CourtStore store = new CourtStore();
+        EdictStore store = new EdictStore();
 
 
         // 5. 创建本场朝会

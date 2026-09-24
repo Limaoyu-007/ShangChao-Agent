@@ -1,7 +1,7 @@
 
 package court.parallel;
 
-import court.CourtStore;
+import court.EdictStore;
 import court.Edict;
 
 import java.nio.file.Files;
@@ -29,13 +29,25 @@ import java.util.UUID;
  */
 public class CourtSession {
 
+    // 每场独立编号，避免不同朝会覆盖同一个文件。
+    private final UUID sessionId = UUID.randomUUID();
+
+    public UUID sessionId() {
+        return sessionId;
+    }
+
+    /** 协调线程取得只读副本交给存储，不暴露内部可变列表。 */
+    public List<CourtEvent> events() {
+        return List.copyOf(events);
+    }
+
     // 本场朝会的公开事件
     private final List<CourtEvent> events = new ArrayList<>();
 
     // 圣旨记录
     private final List<Edict> edicts;
 
-    // 本场朝会使用的政务信息
+    // 用户近况、待处理问题和待核实信息；不是已执行结果
     private final String currentAffairs;
 
     // 当前会议版本
@@ -54,11 +66,11 @@ public class CourtSession {
      * 每场朝会拥有独立的事件列表，
      * 但可以共享同一个圣旨存储。
      */
-    public CourtSession(CourtStore store) throws Exception {
+    public CourtSession(EdictStore store) throws Exception {
 
         Objects.requireNonNull(
                 store,
-                "CourtStore 不能为空"
+                "EdictStore 不能为空"
         );
 
         // 读取当前政务

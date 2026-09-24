@@ -13,16 +13,16 @@ import java.util.List;
 import java.util.Objects;
 
 /** 圣旨的文件存储，沿用 court-state.json 的数组格式。 */
-public class CourtStore {
+public class EdictStore {
     private final Path filePath;
     private final ObjectMapper mapper = new ObjectMapper()
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
-    public CourtStore() {
+    public EdictStore() {
         this(Path.of("court-state.json"));
     }
 
-    public CourtStore(Path filePath) {
+    public EdictStore(Path filePath) {
         this.filePath = filePath.toAbsolutePath().normalize();
     }
 
@@ -41,7 +41,7 @@ public class CourtStore {
         Path lockPath = filePath.resolveSibling(filePath.getFileName() + ".lock");
         // 同一 JVM 串行追加；跨进程锁覆盖完整的读取—追加—写入过程。
         // 这只保护文件写入，不保证两个皇帝不会基于同一旧快照作出重复决定。
-        synchronized (CourtStore.class) {
+        synchronized (EdictStore.class) {
             try (FileChannel channel = FileChannel.open(lockPath,
                     StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                  var lock = channel.tryLock()) {
